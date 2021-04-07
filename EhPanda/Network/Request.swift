@@ -151,8 +151,15 @@ struct FrontpageItemsRequest {
     let parser = Parser()
     
     var publisher: AnyPublisher<(PageNumber, [Manga]), AppError> {
-        URLSession.shared
-            .dataTaskPublisher(for: Defaults.URL.frontpageList().safeURL())
+        let session = URLSession(configuration: .default, delegate: DFManager(), delegateQueue: nil)
+        var request = URLRequest(url: URL(string: "https://104.20.135.21/")!)
+        
+        request.setValue(Defaults.URL.host, forHTTPHeaderField: "Host")
+        request.allHTTPHeaderFields = ["Host": Defaults.URL.host]
+        
+        return session
+            .dataTaskPublisher(for: request)
+//            .dataTaskPublisher(for: Defaults.URL.frontpageList().safeURL())
             .tryMap { try Kanna.HTML(html: $0.data, encoding: .utf8) }
             .map(parser.parseListItems)
             .mapError(mapAppError)
