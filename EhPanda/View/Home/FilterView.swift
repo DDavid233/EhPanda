@@ -16,14 +16,14 @@ struct FilterView: View, StoreAccessor {
             if let filter = settings.filter,
                let filterBinding = Binding(settingsBinding.filter) {
                 Form {
-//                    Section(header: Text("Basic")) {
-//                        CategoryView()
-//                        Button(action: onResetButtonTap) {
-//                            Text("Reset filters")
-//                                .foregroundColor(.red)
-//                        }
-//                        Toggle("Advanced settings", isOn: filterBinding.advanced)
-//                    }
+                    Section(header: Text("Basic")) {
+                        CategoryView()
+                        Button(action: onResetButtonTap) {
+                            Text("Reset filters")
+                                .foregroundColor(.red)
+                        }
+                        Toggle("Advanced settings", isOn: filterBinding.advanced)
+                    }
                     Group {
                         Section {
                             Toggle("Search gallery name", isOn: filterBinding.galleryName)
@@ -155,7 +155,7 @@ private extension CategoryView {
 }
 
 // MARK: CategoryCell
-private struct CategoryCell: View {
+struct CategoryCell: View {
     @Binding private var isFiltered: Bool
     private let category: Category
 

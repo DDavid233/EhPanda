@@ -24,8 +24,13 @@ struct MangaSummaryRow: View, StoreAccessor {
                 .scaledToFit()
                 .frame(width: width, height: height)
             VStack(alignment: .leading) {
+                CategoryCell(
+                    isFiltered: Binding.constant(false),
+                    category: manga.category
+                )
+                .fixedSize(horizontal: false, vertical: true)
                 Text(manga.title)
-                    .lineLimit(1)
+                    .lineLimit(2)
                     .font(.headline)
                     .foregroundColor(.primary)
                 Text(manga.uploader ?? "")
