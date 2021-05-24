@@ -24,6 +24,7 @@ extension AppState {
         var isPreview = false
         var isAppUnlocked = true
         var blurRadius: CGFloat = 0
+        var viewControllersCount = 1
         var isSlideMenuClosed = true
         var navBarHidden = false
         var homeListType: HomeListType = .frontpage
@@ -354,6 +355,9 @@ extension AppState {
                 }
                 items?[gid]?.contents?.sort { $0.tag < $1.tag }
             }
+        }
+        mutating func insertAspectBox(gid: String, box: [Int: CGFloat]) {
+            items?[gid]?.detail?.aspectBox = box
         }
         mutating func insertReadingProgress(gid: String, progress: Int) {
             items?[gid]?.detail?.readingProgress = progress

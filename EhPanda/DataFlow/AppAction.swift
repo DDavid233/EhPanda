@@ -18,10 +18,12 @@ enum AppAction {
     case initiateSetting
     case cleanDetailViewCommentContent
     case cleanCommentViewCommentContent
+    case saveAspectBox(gid: String, box: [Int: CGFloat])
     case saveReadingProgress(gid: String, tag: Int)
     case updateDiskImageCacheSize(size: String)
     case updateAppIconType(iconType: IconType)
     case updateHistoryItems(gid: String)
+    case updateViewControllersCount
     case resetDownloadCommandResponse
     case replaceMangaCommentJumpID(gid: String?)
     case updateIsSlideMenuClosed(isClosed: Bool)

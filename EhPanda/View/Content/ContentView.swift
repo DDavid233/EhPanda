@@ -12,7 +12,14 @@ import SDWebImageSwiftUI
 
 struct ContentView: View, StoreAccessor {
     @EnvironmentObject var store: Store
-    @State private var readingProgress: Int = -1
+
+    @State private var position: CGFloat = 0
+    @State private var aspectBox = [Int: CGFloat]()
+
+    @State private var scale: CGFloat = 1
+    @State private var baseScale: CGFloat = 1
+    @State private var offset: CGSize = .zero
+    @State private var newOffset: CGSize = .zero
 
     private let gid: String
 
@@ -22,25 +29,52 @@ struct ContentView: View, StoreAccessor {
 
     // MARK: ContentView
     var body: some View {
-        Group {
+        let doubleTap = TapGesture(
+            count: 2
+        )
+        .onEnded(onDoubleTap)
+        let drag = DragGesture(
+            minimumDistance: 0.0,
+            coordinateSpace: .local
+        )
+        .onChanged(onDragGestureChanged)
+        .onEnded(onDragGestureEnded)
+        let magnify = MagnificationGesture()
+        .onChanged(onMagnificationGestureChanged)
+        .onEnded(onMagnificationGestureEnded)
+
+        return Group {
             if let contents = mangaContents,
                let setting = setting,
                !contents.isEmpty
             {
-                ScrollViewReader { proxy in
+                ScrollViewReader { scrollProxy in
                     ScrollView {
+                        GeometryReader { geoProxy in
+                            Text("I'm invisible~")
+                                .onChange(
+                                    of: geoProxy.frame(in: .global).minY,
+                                    perform: updateGeoProxyMinY
+                                )
+                        }
+                        .frame(width: 0, height: 0)
                         LazyVStack(spacing: 0) {
                             ForEach(contents) { item in
-                                ImageContainer(
-                                    content: item,
-                                    retryLimit: setting.contentRetryLimit,
-                                    onTapAction: onWebImageTap,
-                                    onLongPressAction: onWebImageLongPress
-                                )
-                                .onAppear {
-                                    onWebImageAppear(item)
+                                ZStack {
+                                    ImageContainer(
+                                        content: item,
+                                        retryLimit: setting.contentRetryLimit,
+                                        onSuccessAction: onWebImageSuccess
+                                    )
+                                    .frame(
+                                        width: absoluteScreenW,
+                                        height: calImageHeight(item.tag)
+                                    )
+                                    .onAppear {
+                                        onWebImageAppear(item)
+                                    }
                                 }
-                                if setting.showContentDividers {
+                                if setting.contentDividerHeight > 0 {
                                     Rectangle()
                                         .fill(Color(.darkGray))
                                         .frame(height: setting.contentDividerHeight)
@@ -61,11 +95,22 @@ struct ContentView: View, StoreAccessor {
                             .padding(.bottom, 24)
                         }
                         .onAppear {
-                            onLazyVStackAppear(proxy)
+                            onLazyVStackAppear(scrollProxy)
                         }
                     }
                     .ignoresSafeArea()
-                    .transition(AnyTransition.opacity.animation(.default))
+                    .transition(
+                        AnyTransition
+                            .opacity
+                            .animation(
+                                .default
+                            )
+                    )
+                    .scaleEffect(scale)
+                    .offset(offset)
+                    .gesture(doubleTap)
+                    .gesture(drag)
+                    .gesture(magnify)
                 }
             } else if contentInfo.mangaContentsLoading {
                 LoadingView()
@@ -78,7 +123,7 @@ struct ContentView: View, StoreAccessor {
                 for: Notification.Name("DetailViewOnDisappear")
             )
         ) { _ in
-            onReceiveDetailViewOnDisappearNotification()
+            onDetailViewDisappear()
         }
         .onReceive(
             NotificationCenter.default.publisher(
@@ -94,6 +139,13 @@ struct ContentView: View, StoreAccessor {
         ) { _ in
             onResignActive()
         }
+        .onReceive(
+            NotificationCenter.default.publisher(
+                for: NSNotification.Name("AppWidthDidChange")
+            )
+        ) { _ in
+            onWidthChange()
+        }
         .onAppear(perform: onAppear)
         .onDisappear(perform: onDisappear)
         .navigationBarBackButtonHidden(true)
@@ -101,7 +153,9 @@ struct ContentView: View, StoreAccessor {
     }
 }
 
+// MARK: Private Extension
 private extension ContentView {
+    // MARK: Properties
     var mangaDetail: MangaDetail? {
         cachedList.items?[gid]?.detail
     }
@@ -114,19 +168,33 @@ private extension ContentView {
     var moreLoadFailedFlag: Bool {
         contentInfo.moreMangaContentsLoadFailed
     }
+    var contentHScale: CGFloat {
+        Defaults.ImageSize.contentHScale
+    }
 
+    // MARK: Life Cycle
     func onAppear() {
+        restoreAspectBox()
         toggleNavBarHiddenIfNeeded()
         fetchMangaContentsIfNeeded()
     }
     func onDisappear() {
+        saveAspectBox()
         saveReadingProgress()
     }
     func onResignActive() {
+        saveAspectBox()
         saveReadingProgress()
     }
-    func onReceiveDetailViewOnDisappearNotification() {
+    func onDetailViewDisappear() {
         toggleNavBarHiddenIfNeeded()
+    }
+    func onWidthChange() {
+        DispatchQueue.main.async {
+            setOffset(.zero)
+            setScale(1.1)
+            setScale(1)
+        }
     }
     func onLazyVStackAppear(_ proxy: ScrollViewProxy) {
         if let tag = mangaDetail?.readingProgress {
@@ -138,22 +206,11 @@ private extension ContentView {
             fetchMoreMangaContents()
         }
     }
-    func onWebImageTap() {}
-    func onWebImageLongPress(tag: Int) {
-        readingProgress = tag
+    func onWebImageSuccess(_ tag: Int, _ aspect: CGFloat) {
+        aspectBox[tag] = aspect
     }
 
-    func saveReadingProgress() {
-        if readingProgress != -1 {
-            store.dispatch(
-                .saveReadingProgress(
-                    gid: gid,
-                    tag: readingProgress
-                )
-            )
-        }
-    }
-
+    // MARK: Dispatch
     func fetchMangaContents() {
         store.dispatch(.fetchMangaContents(gid: gid))
     }
@@ -175,6 +232,135 @@ private extension ContentView {
             store.dispatch(.toggleNavBarHidden(isHidden: true))
         }
     }
+
+    // MARK: ReadingProgress
+    func calImageHeight(_ tag: Int) -> CGFloat {
+        if let aspect = aspectBox[tag] {
+            return absoluteScreenW * aspect
+        } else {
+            return screenH * contentHScale
+        }
+    }
+    func calReadingProgress() -> Int {
+        guard let contentsCount = mangaContents?.count
+        else { return -1 }
+
+        var heightArray = Array(
+            repeating: screenH * contentHScale,
+            count: contentsCount
+        )
+        aspectBox.forEach { (key: Int, value: CGFloat) in
+            heightArray[key] = value * screenW
+        }
+
+        var remainingPosition = position + screenH / 2
+        for (index, value) in heightArray.enumerated() {
+            remainingPosition -= value
+            if remainingPosition < 0 {
+                return index
+            }
+        }
+        return -1
+    }
+    func updateGeoProxyMinY(_ value: CGFloat) {
+        position = abs(value)
+    }
+
+    func saveReadingProgress() {
+        let progress = calReadingProgress()
+        if progress != -1 {
+            store.dispatch(
+                .saveReadingProgress(
+                    gid: gid,
+                    tag: progress
+                )
+            )
+        }
+    }
+    func restoreAspectBox() {
+        if let aspectBox = mangaDetail?.aspectBox {
+            self.aspectBox = aspectBox
+        }
+    }
+    func saveAspectBox() {
+        if !aspectBox.isEmpty {
+            store.dispatch(
+                .saveAspectBox(
+                    gid: gid,
+                    box: aspectBox
+                )
+            )
+        }
+    }
+
+    // MARK: Gestures
+    func onDoubleTap(_ value: TapGesture.Value) {
+        setOffset(.zero)
+        setScale(scale == 1 ? setting?.doubleTapScaleFactor ?? 2 : 1)
+    }
+    func onDragGestureChanged(_ value: DragGesture.Value) {
+        if scale > 1 {
+            let newX = value.translation.width + newOffset.width
+            let screenW = UIScreen.main.bounds.width
+            let marginW = screenW * (scale - 1) / 2
+
+            let newOffsetW = min(max(newX, -marginW), marginW)
+            setOffset(CGSize(width: newOffsetW, height: offset.height))
+        }
+    }
+    func onDragGestureEnded(_ value: DragGesture.Value) {
+        onDragGestureChanged(value)
+
+        if scale > 1 {
+            newOffset.width = offset.width
+        }
+    }
+    func onMagnificationGestureChanged(_ value: MagnificationGesture.Value) {
+        if value == 1 {
+            baseScale = scale
+        }
+        fixOffset()
+        setScale(value * baseScale)
+    }
+    func onMagnificationGestureEnded(_ value: MagnificationGesture.Value) {
+        onMagnificationGestureChanged(value)
+        if value * baseScale - 1 < 0.01 {
+            setScale(1)
+        }
+        baseScale = scale
+    }
+
+    func setOffset(_ newOffset: CGSize) {
+        let animation = Animation
+            .linear(duration: 0.1)
+        if offset != newOffset {
+            withAnimation(animation) {
+                offset = newOffset
+            }
+        }
+    }
+    func fixOffset() {
+        let screenW = UIScreen.main.bounds.width
+        let marginW = screenW * (scale - 1) / 2
+
+        withAnimation {
+            if offset.width > marginW {
+                offset.width = marginW
+            } else if offset.width < -marginW {
+                offset.width = -marginW
+            }
+        }
+    }
+    func setScale(_ newScale: CGFloat) {
+        let max = setting?.maximumScaleFactor ?? 3
+        guard scale != newScale && newScale >= 1 && newScale <= max
+        else { return }
+
+        withAnimation {
+            scale = newScale
+            print("debugMark: \(newScale)")
+        }
+    }
 }
 
 // MARK: ImageContainer
@@ -183,19 +369,20 @@ private struct ImageContainer: View {
 
     private var content: MangaContent
     private var retryLimit: Int
-    private var onTapAction: () -> Void
-    private var onLongPressAction: (Int) -> Void
+    private var onSuccessAction: ((Int, CGFloat)) -> Void
+
+    private var contentHScale: CGFloat {
+        Defaults.ImageSize.contentHScale
+    }
 
     init(
         content: MangaContent,
         retryLimit: Int,
-        onTapAction: @escaping () -> Void,
-        onLongPressAction: @escaping (Int) -> Void
+        onSuccessAction: @escaping ((Int, CGFloat)) -> Void
     ) {
         self.content = content
         self.retryLimit = retryLimit
-        self.onTapAction = onTapAction
-        self.onLongPressAction = onLongPressAction
+        self.onSuccessAction = onSuccessAction
     }
 
     var body: some View {
@@ -206,23 +393,21 @@ private struct ImageContainer: View {
                     pageNumber: content.tag,
                     percentage: percentage
                 )
+                .frame(
+                    width: absoluteScreenW,
+                    height: screenH * contentHScale
+                )
             }
             .retry(
                 maxCount: retryLimit,
                 interval: .seconds(0.5)
             )
             .onProgress(onWebImageProgress)
+            .onSuccess(onWebImageSuccess)
             .loadImmediately()
             .resizable()
             .scaledToFit()
-            .onTapGesture(perform: onTap)
-            .onLongPressGesture(
-                minimumDuration: 0,
-                maximumDistance: .infinity,
-                pressing: { _ in
-                    onLongPressing(tag: content.tag)
-                }, perform: {}
-            )
+
     }
 
     private func onWebImageProgress<I: BinaryInteger>(
@@ -230,10 +415,9 @@ private struct ImageContainer: View {
     ) {
         percentage = Float(received) / Float(total)
     }
-    private func onTap() {
-        onTapAction()
-    }
-    private func onLongPressing(tag: Int) {
-        onLongPressAction(tag)
+    private func onWebImageSuccess(_ result: RetrieveImageResult) {
+        let size = result.image.size
+        let aspect = size.height / size.width
+        onSuccessAction((content.tag, aspect))
     }
 }
