@@ -64,7 +64,7 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string>zeng.EhPanda</string>
+			<string>works.dd.EhPanda</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>ehpanda</string>

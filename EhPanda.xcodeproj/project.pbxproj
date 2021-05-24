@@ -72,6 +72,7 @@
 		ABF45AF725F3313D00ECB568 /* SettingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABF45ADD25F3313D00ECB568 /* SettingView.swift */; };
 		ABF45AF825F3313D00ECB568 /* EhPandaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABF45ADE25F3313D00ECB568 /* EhPandaView.swift */; };
 		ABF75F3F25A19CD200544D29 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABF75F3E25A19CD200544D29 /* User.swift */; };
+		E4061864265BBE7F002C0D79 /* Request.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABCD2F09259763FC008E5A20 /* Request.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -472,6 +473,7 @@
 				ABF45AF425F3313D00ECB568 /* WebView.swift in Sources */,
 				ABF45AF225F3313D00ECB568 /* GeneralSettingView.swift in Sources */,
 				ABF45ABA25F3312F00ECB568 /* AppCommand.swift in Sources */,
+				E4061864265BBE7F002C0D79 /* Request.swift in Sources */,
 				ABF45AE425F3313D00ECB568 /* TagCloudView.swift in Sources */,
 				ABF45AEE25F3313D00ECB568 /* ArchiveView.swift in Sources */,
 				ABF45AEC25F3313D00ECB568 /* ContentView.swift in Sources */,
@@ -654,7 +656,7 @@
 				);
 				MARKETING_VERSION = 1.0.2;
 				OTHER_LDFLAGS = "";
-				PRODUCT_BUNDLE_IDENTIFIER = EhPanda.dd.works;
+				PRODUCT_BUNDLE_IDENTIFIER = works.dd.EhPanda;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
@@ -681,7 +683,7 @@
 				);
 				MARKETING_VERSION = 1.0.2;
 				OTHER_LDFLAGS = "";
-				PRODUCT_BUNDLE_IDENTIFIER = EhPanda.dd.works;
+				PRODUCT_BUNDLE_IDENTIFIER = works.dd.EhPanda;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 5.0;
