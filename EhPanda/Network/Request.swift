@@ -125,9 +125,6 @@ struct SearchItemsRequest {
             )
             .tryMap { try Kanna.HTML(html: $0.data, encoding: .utf8) }
             .map { (Parser.parsePageNum($0), Parser.parseListItems($0)) }
-            .map { ($0.0, $0.1.filter {
-                $0.category == .nonH && $0.rating < 4.0 && $0.rating > 2.5
-            })}
             .mapError(mapAppError)
             .eraseToAnyPublisher()
     }
@@ -153,9 +150,6 @@ struct MoreSearchItemsRequest {
             )
             .tryMap { try Kanna.HTML(html: $0.data, encoding: .utf8) }
             .map { (Parser.parsePageNum($0), Parser.parseListItems($0)) }
-            .map { ($0.0, $0.1.filter {
-                $0.category == .nonH && $0.rating < 4.0 && $0.rating > 2.5
-            })}
             .mapError(mapAppError)
             .eraseToAnyPublisher()
     }
@@ -167,9 +161,6 @@ struct FrontpageItemsRequest {
             .dataTaskPublisher(for: Defaults.URL.frontpageList().safeURL())
             .tryMap { try Kanna.HTML(html: $0.data, encoding: .utf8) }
             .map { (Parser.parsePageNum($0), Parser.parseListItems($0)) }
-            .map { ($0.0, $0.1.filter {
-                $0.category == .nonH && $0.rating < 4.0 && $0.rating > 2.5
-            })}
             .mapError(mapAppError)
             .eraseToAnyPublisher()
     }
@@ -180,7 +171,7 @@ struct MoreFrontpageItemsRequest {
     let pageNum: Int
 
     var publisher: AnyPublisher<(PageNumber, [Manga]), AppError> {
-        URLSession.shared
+        return URLSession.shared
             .dataTaskPublisher(
                 for: Defaults.URL
                     .moreFrontpageList(
@@ -191,9 +182,6 @@ struct MoreFrontpageItemsRequest {
             )
             .tryMap { try Kanna.HTML(html: $0.data, encoding: .utf8) }
             .map { (Parser.parsePageNum($0), Parser.parseListItems($0)) }
-            .map { ($0.0, $0.1.filter {
-                $0.category == .nonH && $0.rating < 4.0 && $0.rating > 2.5
-            })}
             .mapError(mapAppError)
             .eraseToAnyPublisher()
     }
@@ -205,9 +193,6 @@ struct PopularItemsRequest {
             .dataTaskPublisher(for: Defaults.URL.popularList().safeURL())
             .tryMap { try Kanna.HTML(html: $0.data, encoding: .utf8) }
             .map { (Parser.parsePageNum($0), Parser.parseListItems($0)) }
-            .map { ($0.0, $0.1.filter {
-                $0.category == .nonH && $0.rating < 4.5 && $0.rating > 2.5
-            })}
             .mapError(mapAppError)
             .eraseToAnyPublisher()
     }
@@ -219,9 +204,6 @@ struct WatchedItemsRequest {
             .dataTaskPublisher(for: Defaults.URL.watchedList().safeURL())
             .tryMap { try Kanna.HTML(html: $0.data, encoding: .utf8) }
             .map { (Parser.parsePageNum($0), Parser.parseListItems($0)) }
-            .map { ($0.0, $0.1.filter {
-                $0.category == .nonH && $0.rating < 4.5 && $0.rating > 2.5
-            })}
             .mapError(mapAppError)
             .eraseToAnyPublisher()
     }
@@ -243,9 +225,6 @@ struct MoreWatchedItemsRequest {
             )
             .tryMap { try Kanna.HTML(html: $0.data, encoding: .utf8) }
             .map { (Parser.parsePageNum($0), Parser.parseListItems($0)) }
-            .map { ($0.0, $0.1.filter {
-                $0.category == .nonH && $0.rating < 4.5 && $0.rating > 2.5
-            })}
             .mapError(mapAppError)
             .eraseToAnyPublisher()
     }
@@ -325,9 +304,6 @@ struct AssociatedItemsRequest {
         )
         .tryMap { try Kanna.HTML(html: $0.data, encoding: .utf8) }
         .map { (Parser.parsePageNum($0), Parser.parseListItems($0)) }
-        .map { ($0.0, $0.1.filter {
-            $0.category == .nonH && $0.rating < 4.0 && $0.rating > 2.5
-        })}
         .mapError(mapAppError)
         .eraseToAnyPublisher()
     }
@@ -351,9 +327,6 @@ struct MoreAssociatedItemsRequest {
             )
             .tryMap { try Kanna.HTML(html: $0.data, encoding: .utf8) }
             .map { (Parser.parsePageNum($0), Parser.parseListItems($0)) }
-            .map { ($0.0, $0.1.filter {
-                $0.category == .nonH && $0.rating < 4.0 && $0.rating > 2.5
-            })}
             .mapError(mapAppError)
             .eraseToAnyPublisher()
     }
